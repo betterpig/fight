@@ -15,7 +15,7 @@ int main(int argc,char **argv)
     servaddr.sin_port=htons(SERV_PORT);//host to net short
     Bind(listenfd,(SA *) &servaddr,sizeof(servaddr));//将服务端套接字与监听描述符绑定
     Listen(listenfd,LISTENQ);//将主动套接字转换为被动套接字，并指定已完成连接队列加未完成连接队列之和的最大值
-
+    signal(SIGCHLD,sig_chld);
     for(;;)
     {
         clilen=sizeof(cliaddr);//从已完成连接队列中取出队头
