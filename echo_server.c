@@ -19,7 +19,13 @@ int main(int argc,char **argv)
     for(;;)
     {
         clilen=sizeof(cliaddr);//从已完成连接队列中取出队头
-        connfd=accept(listenfd,(SA *) &cliaddr,&clilen);
+        if((connfd=accept(listenfd,(SA *) &cliaddr,&clilen))<0)
+        {
+            if(errno==EINTR)
+                continue;
+            else
+                err_sys("accept error");
+        }
         if( (childpid=Fork())==0)//创建子进程，如果返回值为0，说明当前进程为父进程；返回值不为0，说明当前进程是子进程，就要关闭监听描述符，用已连接描述符作参数调用str_echo
         {
             Close(listenfd);//子进程关闭父进程监听描述符
