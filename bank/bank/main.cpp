@@ -1,13 +1,13 @@
 #include "account.h"
 #include <iostream>
-#include<vector>
+#include "array.h"
 using namespace std;
 
 int main() {
 	Date date(2008, 11, 1);	//起始日期
 	//建立几个账户
 
-	vector<Account *> accounts;
+	Array<Account *> accounts;
 
 	cout << "(a)add account (d)deposit (w)withdraw (s)show (c)change day (n)next month (e)exit" << endl;
 	char cmd;
@@ -47,7 +47,7 @@ int main() {
 			accounts[index]->withdraw(date, amount, desc);
 			break;
 		case 's':	//查询各账户信息
-			for (int i = 0; i < accounts.size(); i++) {
+			for (int i = 0; i < accounts.getSize(); i++) {
 				cout << "[" << i << "] ";
 				accounts[i]->show();
 				cout << endl;
@@ -67,7 +67,7 @@ int main() {
 				date = Date(date.getYear() + 1, 1, 1);
 			else
 				date = Date(date.getYear(), date.getMonth() + 1, 1);
-			for (int i = 0; i < accounts.size(); i++)
+			for (int i = 0; i < accounts.getSize(); i++)
 				accounts[i]->settle(date);
 			break;
 		}
