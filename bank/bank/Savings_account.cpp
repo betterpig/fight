@@ -46,7 +46,7 @@ void SavingsAccount::withdraw(const Date &date, double amount, const string &des
 }
 
 void SavingsAccount::settle(const Date &date) {
-	if (date.getMonth() == 1)
+	if (date.getMonth() != 1)
 		return;
 	double interest = acc.getSum(date) * rate/ (date-Date(date.getYear() - 1, 1, 1));
 	if (interest != 0)
