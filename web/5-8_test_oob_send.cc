@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 
 int main(int argc,char *argv[])
 {
@@ -31,7 +32,7 @@ int main(int argc,char *argv[])
     assert(connection_fd>=0);
 
     if(connect(connection_fd,(struct sockaddr*) &server_address,sizeof(server_address))<0)
-        printf("connection failed\n");
+        printf("connection failed,errno is %d\n",errno);
     else
     {
         const char* oob_data="abc";
