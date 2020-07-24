@@ -108,7 +108,7 @@ public:
 
     void Tick()
     {
-        tw_timer* tmp=slot[cur_slot];
+        tw_timer* tmp=slots[cur_slot];
         printf("current slot is %d\n",cur_slot);
         while(tmp)
         {

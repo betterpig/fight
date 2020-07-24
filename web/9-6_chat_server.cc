@@ -156,11 +156,12 @@ int main(int argc,char *argv[])
                             continue;
                         fds[j].events |= ~POLLIN;//不再监听可读事件
                         fds[j].events |= POLLOUT;//监听可写事件，不出意外下一次poll就会返回这些连接描述符上的可写事件就绪
+                        //每个用户都复制了一份某客户收到的数据
                         users[fds[j].fd].write_buf=users[connfd].buf;//并且把要写的数据（来自前面的从某个客户连接读取到的数据）放在每个客户对象的buf上
                     }
                 }
             }
-            else if(fds[i].revents & POLLOUT)
+            else if(fds[i].revents & POLLOUT)//只要发送缓存没满，可写事件就会就绪！！！
             {
                 int connfd=fds[i].fd;
                 if(!users[connfd].write_buf)//如果可写，但是buf里又没数据，按理说这是有问题的，只要进入了这个if，buf就应该有数据

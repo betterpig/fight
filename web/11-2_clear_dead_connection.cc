@@ -26,7 +26,7 @@ static int epollfd=0;
 int SetNonBlocking(int fd)//将文件描述符设为非阻塞状态
 {
     int old_option = fcntl(fd,F_GETFL);//获取文件描述符旧的状态标志
-    int new_option= old_option | O_NONBLOCK;//定义新的状态标志为非阻塞
+    int new_option= EPOLLIN | O_NONBLOCK;//定义新的状态标志为非阻塞
     fcntl(fd,F_SETFL,new_option);//将文件描述符设置为新的状态标志-非阻塞
     return old_option;//返回旧的状态标志，以便日后能够恢复
 }
@@ -35,7 +35,7 @@ void Addfd(int epollfd,int fd)//往内核事件表中添加需要监听的文件
 {
     epoll_event event;//定义epoll_event结构体对象
     event.data.fd=fd;
-    event.events=event.events | EPOLLET;//设置为ET模式：同一就绪事件只会通知一次
+    event.events=EPOLLIN | EPOLLET;//设置为ET模式：同一就绪事件只会通知一次
     epoll_ctl(epollfd,EPOLL_CTL_ADD,fd,&event);//往该内核时间表中添加该文件描述符和相应事件
     SetNonBlocking(fd);//因为已经委托内核时间表来监听事件是否就绪，所以该文件描述符可以设置为非阻塞
 }
@@ -138,7 +138,7 @@ int main(int argc,char *argv[])
                 users[connection_fd].sockfd=connection_fd;
                 UtilTimer* timer=new UtilTimer;//为该连接新建定时器节点
                 timer->user_data=&users[connection_fd];//将定时器与该连接绑定
-                timer->cb_func=cb_func;//设置定时器到期后要调用的函数
+                timer->cb_func=cb_func;//设置定时器到期后要调用的函数，也就是说在定时器刚创建时它的回调函数和要用到的客户端数据就被保存好了，而在连接刚创建时，定时器也就创建好了
                 time_t cur=time(nullptr);
                 timer->expire=cur+3*TIMESLOT;//设置闹钟，该定时器将在3*TIMESLOT后到期，届时将关闭该连接
                 users[connection_fd].timer=timer;
@@ -180,7 +180,7 @@ int main(int argc,char *argv[])
                 {
                     if(errno!=EAGAIN)//如果发生错误，则在内核事件表中删除该连接描述符，关闭连接，并删除链表中的定时器节点
                     {
-                        cb_func(&users[sockfd]);
+                        cb_func(&users[sockfd]);//回调函数并不会删除定时器节点
                         if(timer)
                             timer_lst.DeleteTimer(timer);
                     }

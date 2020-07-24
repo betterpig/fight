@@ -157,7 +157,7 @@ private:
 
     void Resize() throw(std::exception)
     {
-        Timer** tmp=new Timer* (2*capacity);
+        Timer** tmp=new Timer* [2*capacity];
         for(int i=0;i<2*capacity;++i)
             tmp[i]=nullptr;
         if(!tmp)

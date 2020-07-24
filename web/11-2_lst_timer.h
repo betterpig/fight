@@ -15,10 +15,11 @@ struct client_data
     UtilTimer* timer;//在结构体client_data中需要用该类定义指针，
 };
 
-class UtilTimer//相当于链表中的节点结构体
+class UtilTimer//相当于链表中的节点结构体，它自己既保存了回调函数，又保存了用于回调函数的参数 userdata
 {
 public:
     time_t expire;//任务的超时时间，绝对时间，即在什么时候终止
+    //回调函数是外部定义的，然后作为节点的成员
     void (*cb_func) (client_data*);//函数指针作为类的成员，该函数类型是：返回类型为void，参数类型为指向client_data结构体的指针
     client_data* user_data;//在类UtilTimer中，又要用到client_data结构体来定义指针，二者互相使用
     UtilTimer* prev;//指向前一个节点
@@ -130,7 +131,7 @@ public:
         {
             if(cur<tmp->expire)//如果当前节点的终止时间大于当前系统时间，说明该节点往后的定时器节点都没到期，因为升序！
                 break;
-            tmp->cb_func(tmp->user_data);//对到期的定时器，执行它的回调函数
+            tmp->cb_func(tmp->user_data);//对到期的定时器，执行它自己的函数成员：回调函数，传入的参数是它自己的参数成员：客户端数据
             head=tmp->next;
             if(head)
                 head->prev=nullptr;//善后
