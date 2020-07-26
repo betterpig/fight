@@ -70,7 +70,7 @@ bool ThreadPool<T>::Append(T* request)
         m_queue_locker.Unlock();
         return false;
     }
-    m_work_queue.push_back(reqest);//将请求放到队列最后
+    m_work_queue.push_back(request);//将请求放到队列最后
 
     m_queue_locker.Unlock();//解锁
     m_queue_stat.Post();//将信号量+1
@@ -90,7 +90,7 @@ void ThreadPool<T>::Run()
 {
     while(!m_stop)
     {
-        m_queue_stat.wait();//阻塞，等待有请求来到.若信号量大于1，则执行-1操作
+        m_queue_stat.Wait();//阻塞，等待有请求来到.若信号量大于1，则执行-1操作
         m_queue_locker.Lock();//请求来到，给请求队列上锁
         if(m_work_queue.empty())//如果请求队列空了，说明请求被别的线程取走了
         {

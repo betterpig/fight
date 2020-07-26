@@ -52,14 +52,14 @@ int main(int argc,char *argv[])
     ThreadPool<HttpConn>* pool=nullptr;
     try
     {
-        pool=new ThreadPool<HttpConn>;
+        pool=new ThreadPool<HttpConn>;//建立线程池
     }
     catch(...)
     {
         return 1;
     }
 
-    HttpConn* users=new HttpConn[MAX_FD];
+    HttpConn* users=new HttpConn[100];//建立HTTP客户对象数组
     assert(users);
     int user_count=0;
     //创建IPv4 socket 地址
@@ -95,7 +95,7 @@ int main(int argc,char *argv[])
             printf("epoll failure\n");
             break;
         }
-        for(int i=0;i<number;i++)
+        for(int i=0;i<number;i++)//就绪事件：监听描述符可读、信号事件、连接描述符可读、连接描述符可写
         {
             int sockfd=events[i].data.fd;//取出每个就绪事件对应的文件描述符
             if(sockfd==listenfd)
@@ -113,22 +113,23 @@ int main(int argc,char *argv[])
                     ShowError(connection_fd,"Internet server busy");
                     continue;
                 }
+                users[connection_fd].Init(connection_fd,client_address);
             }
             else if(events[i].events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR))
-            {
+            {//连接被对方关闭、管道的写端关闭、错误
                 users[sockfd].CloseConn();
             }
             else if(events[i].events & EPOLLIN)
             {
-                if(users[sockfd].Read())
-                    pool->Append(users+sockfd);
+                if(users[sockfd].Read())//成功读取到HTTP请求
+                    pool->Append(users+sockfd);//将该请求加入到工作队列中
                 else
-                    users[sockfd].CloseConn();
+                    users[sockfd].CloseConn();//读失败，关闭连接
             }
             else if(events[i].events & EPOLLOUT)
             {
-                if(!users[sockfd].Write())
-                    users[sockfd].CloseConn();
+                if(!users[sockfd].Write())//写失败
+                    users[sockfd].CloseConn();//关闭连接
             }
             else 
                 continue;
