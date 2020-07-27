@@ -10,7 +10,7 @@ const char* error_404_title="Not Found";
 const char* error_404_form="The requested file was not found on this server.\n";
 const char* error_500_title="Internal Error";
 const char* error_500_form="There was an unusual problem serving the requested file.\n";
-const char* doc_root="~/code/web/fight";
+const char* doc_root="/home/sing/code/fight/web";
 
 int SetNonBlocking(int fd)//将文件描述符设为非阻塞状态
 {
@@ -172,7 +172,7 @@ HttpConn::HTTP_CODE HttpConn::ParseRequestLine(char* text)//解析请求行
     }
     if(!m_url || m_url[0] != '/')//如果后面没有/，或者指向的不是/，那就没有文件路径，不是正确的url格式
         return BAD_REQUEST;
-    printf("The request file'path is: %s\n",m_url);//这里似乎只是输出请求的文件名，而不是完整的包括域名的url
+    //printf("The request file'path is: %s\n",m_url);//这里似乎只是输出请求的文件名，而不是完整的包括域名的url
     //version
     m_version+=strspn(m_version, " \t");//避免有很多空格的情况，先把空格都跳过，就指向了H
     if(strcasecmp(m_version, "HTTP/1.1") != 0)//在version起始的字符串中查找该字符串
@@ -253,7 +253,7 @@ HttpConn::HTTP_CODE HttpConn::ProcessRead()//主状态机，用于从buffer中�
             if(ret==BAD_REQUEST)
                 return BAD_REQUEST;
             else if(ret==GET_REQUEST)
-                return GET_REQUEST;
+                return DoRequest();
             break;
         }
         case CHECK_STATE_CONTENT://解析实体主体，通常不用
@@ -278,7 +278,10 @@ HttpConn::HTTP_CODE HttpConn::DoRequest()//分析客户请求的目标文件，�
     int len=strlen(doc_root);
     strncpy(m_real_file+len,m_url,FILENAME_LEN-len-1);//再将文件路径复制到m_real_file+len的位置，第三个参数指定复制长度上限，即尽量将路径复制完但不保证复制完
     if(stat(m_real_file,&m_file_stat)<0)//查看文件状态失败->目标文件不存在
+    {
+        //printf("file is not exist,errno is: %d\n",errno);
         return NO_RESOURCE;
+    }
     if(!(m_file_stat.st_mode & S_IROTH))//当前用户没有读取目标文件的权限
         return FORBIDDEN_REQUEST;
 

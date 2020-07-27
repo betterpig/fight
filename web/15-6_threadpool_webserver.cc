@@ -59,7 +59,7 @@ int main(int argc,char *argv[])
         return 1;
     }
 
-    HttpConn* users=new HttpConn[100];//建立HTTP客户对象数组
+    HttpConn* users=new HttpConn[10000];//建立HTTP客户对象数组
     assert(users);
     int user_count=0;
     //创建IPv4 socket 地址
