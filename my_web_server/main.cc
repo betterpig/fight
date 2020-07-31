@@ -17,14 +17,16 @@
 
 #define MAX_FD 65536
 #define MAX_EVENT_NUMBER 10000
-#define TIMESLOT 1000//
+#define TIMESLOT 5//
 
 static SortTimerList timer_lst;//定时器容器
+static int sigpipe[2];
 extern int Addfd(int epollfd,int fd,bool oneshot);
 extern int Removdfd(int epollfd,int fd);
+extern int SetNonBlocking(int fd);
 bool timeout =false;//通过该标志位来判断是否收到SIGALRM信号
 
-void AddSig(int sig,void (handler) (int),bool restart=true)//设置给定信号对应的信号处理函数
+void AddSig(int sig,void (*handler) (int),bool restart=true)//设置给定信号对应的信号处理函数
 {
     struct sigaction sa;//因为是用sigaction函数设置信号处理函数，所以需要先定义sigaction结构体
     memset(&sa,'\0',sizeof(sa));
@@ -35,9 +37,12 @@ void AddSig(int sig,void (handler) (int),bool restart=true)//设置给定信号�
     assert(sigaction(sig,&sa,nullptr) != -1);//将信号sig的信号处理函数设置为sa中的sa_handler，并检测异常
 }
 
-void TimerHandler(int sig)
+void SigHandler(int sig)
 {
-    timeout=true;
+    int save_errno=errno;
+    int msg=sig;
+    send(sigpipe[1],(char*) &msg,1,0);
+    errno=save_errno;
 }
 
 void ShowError(int connfd,const char* info)
@@ -56,9 +61,6 @@ int main(int argc,char *argv[])
     }
     const char *ip=argv[1];
     int port=atoi(argv[2]);
-    
-    AddSig(SIGPIPE,SIG_IGN);
-    AddSig(SIGALRM,TimerHandler);
 
     connection_pool* connpool=connection_pool::GetInstance();
     connpool->init("localhost",0,"root","123","db",5);
@@ -102,10 +104,18 @@ int main(int argc,char *argv[])
     Addfd(epollfd,listenfd,false);
     HttpConn::m_epollfd=epollfd;
 
+    ret=pipe(sigpipe);
+    assert(ret!=-1);
+    SetNonBlocking(sigpipe[1]);
+    Addfd(epollfd,sigpipe[0],true);
     
+    AddSig(SIGPIPE,SIG_IGN);
+    AddSig(SIGALRM,SigHandler);
+    AddSig(SIGTERM,SigHandler);
+    AddSig(SIGINT,SigHandler);
     alarm(TIMESLOT);//设置闹钟
-
-    while(true)
+    bool stop_server=false;
+    while(!stop_server)
     {
         int number=epoll_wait(epollfd,events,MAX_EVENT_NUMBER,-1);
         if((number<0) && (errno!=EINTR))
@@ -139,11 +149,39 @@ int main(int argc,char *argv[])
                 users[connection_fd].timer=timer;
                 timer_lst.AddTimer(timer);//将该定时器节点加到链表中
             }
-            else if(events[i].events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR))
+            else if(events[i].events & (EPOLLRDHUP | EPOLLERR))
             {//连接被对方关闭、管道的写端关闭、错误
                 users[sockfd].CloseConn();
                 if(users[sockfd].timer)
                     timer_lst.DeleteTimer(users[sockfd].timer);
+            }
+            else if(sockfd==sigpipe[0] && events[i].events&EPOLLIN)
+            {
+                int sig;
+                char signals[1024];
+                ret=recv(sigpipe[0],signals,sizeof(signals),0);
+                if(ret==-1)
+                    continue;
+                else if(ret==0)
+                    continue;
+                else
+                {
+                    for(int i=0;i<ret;++i)
+                    {
+                        switch(signals[i])
+                        {
+                            case SIGTERM:
+                            case SIGINT:
+                                stop_server=true;
+                                break;
+                            case SIGALRM:
+                                timeout=true;
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
             }
             else if(events[i].events & EPOLLIN)
             {

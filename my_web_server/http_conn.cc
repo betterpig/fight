@@ -308,14 +308,14 @@ HttpConn::HTTP_CODE HttpConn::DoRequest()//分析客户请求的目标文件，�
     if(cgi==1 && ( *(p+1)=='2' || *(p+1)=='3'))
     {
         char name[100],passward[100];
+        memset(name,'\0',100);
+        memset(passward,'\0',100);
         int i;
         for(i=5;m_string[i]!='&';++i)
-        {
             name[i-5]=m_string[i];
-        }
         name[i-5]='\0';
         int j=0;
-        memset(passward,'\0',200);
+        
         for(i=i+10;m_string[i]!='\0';++i)
             passward[j++]=m_string[i];
         passward[j]='\0';
@@ -331,11 +331,12 @@ HttpConn::HTTP_CODE HttpConn::DoRequest()//分析客户请求的目标文件，�
                 strcat(sql_insert,passward);
                 strcat(sql_insert,"')");
                 
-                free(sql_insert);
                 locker.Lock();
                 int res=mysql_query(mysql,sql_insert);
                 users.insert(pair<string,string>(name,passward));
                 locker.Unlock();
+                free(sql_insert);
+
                 if(!res)
                     strcpy(m_url,"/log.html");
                 else 
@@ -347,7 +348,7 @@ HttpConn::HTTP_CODE HttpConn::DoRequest()//分析客户请求的目标文件，�
         else if(*(p+1)=='2')
         {
             if(users.find(name) != users.end() && users[name]==passward)
-                strcpy(m_url,"/images/welcome.jpg");
+                strcpy(m_url,"/picture.html");
             else
                 strcpy(m_url,"/logError.html");
         }
@@ -372,6 +373,7 @@ HttpConn::HTTP_CODE HttpConn::DoRequest()//分析客户请求的目标文件，�
         char* m_url_new=(char*) malloc(sizeof(char)*100);
         strcpy(m_url_new,"/log.html");
         strncpy(m_real_file+len,m_url_new,strlen(m_url_new));
+        
         free(m_url_new);
     }
     else
@@ -392,7 +394,6 @@ HttpConn::HTTP_CODE HttpConn::DoRequest()//分析客户请求的目标文件，�
     //将文件描述符fd对应的文件映射到内存中，返回该内存的首地址
     //内存长度即文件大小，该内存可读，进程私有（对内存的修改不会修改源文件，从文件的相对开头偏移位置为0的地方开始映射
     m_file_address=(char*) mmap(0,m_file_stat.st_size,PROT_READ,MAP_PRIVATE,fd,0);
-    printf("errno is: %d\n",errno);
     close(fd);//关闭文件，现在内存中已经有该文件的一份副本了
     return FILE_REQUEST;//返回文件请求成功标志
 }
