@@ -1,5 +1,7 @@
 #include "http_conn.h"
 #include "connection_pool.h"
+#include "log.h"
+
 const char* ok_200_title="OK";
 const char* error_400_title="Bad Request";
 const char* error_400_form="Your request has bad syntax or is inherently impossible to saticfy.\n";
@@ -284,7 +286,7 @@ void HttpConn::GetDataBase(connection_pool* connpool)
     MYSQL* mysql=nullptr;
     connectionRAII mysqlcon(&mysql,connpool);
     if(mysql_query(mysql,"SELECT user_name,passwd FROM user_data"))
-    printf("SELECT error: %s\n",mysql_error(mysql));
+        LOG_ERROR("mysql errorno is %d",mysql_error(mysql));
 
     MYSQL_RES* result=mysql_store_result(mysql);
     int num_fieleds=mysql_num_fields(result);
@@ -304,7 +306,7 @@ HttpConn::HTTP_CODE HttpConn::DoRequest()//分析客户请求的目标文件，�
     int len=strlen(doc_root);
 
     const char* p=strrchr(m_url,'/');
-
+    LOG_INFO("request option is %d",*(p+1)-'\0');
     if(cgi==1 && ( *(p+1)=='2' || *(p+1)=='3'))
     {
         char name[100],passward[100];

@@ -14,10 +14,12 @@
 #include "http_conn.h"
 #include "lst_timer.h"
 #include "connection_pool.h"
+#include "log.h"
 
 #define MAX_FD 65536
 #define MAX_EVENT_NUMBER 10000
-#define TIMESLOT 5//
+#define TIMESLOT 10000//
+#define ASYNLOG
 
 static SortTimerList timer_lst;//定时器容器
 static int sigpipe[2];
@@ -54,6 +56,12 @@ void ShowError(int connfd,const char* info)
 
 int main(int argc,char *argv[])
 {
+#ifdef ASYNLOG
+    Log::GetInstance()->init("ServerLog", 2000, 800000, 8); //异步日志模型
+#else
+    Log::GetInstance()->init("ServerLog", 2000, 800000, 0); //同步日志模型
+#endif
+
     if(argc<=2)
     {
         printf("usage: %s ip_address port_number\n",basename(argv[0]));
@@ -99,20 +107,23 @@ int main(int argc,char *argv[])
     assert(ret!=-1);
 
     epoll_event events[MAX_EVENT_NUMBER];
-    int epollfd=epoll_create(5);
+    int epollfd=epoll_create(10);
     assert(epollfd!=1);
     Addfd(epollfd,listenfd,false);
     HttpConn::m_epollfd=epollfd;
 
-    ret=pipe(sigpipe);
+    //ret=pipe(sigpipe);//pipe只能用于进程间通信，这里只有一个进程，
+    //虽然一开始会往管道写SIGALARM信号，但epoll并不能检测到该管道可读，这就是为什么不会按时关闭连接的原因
+    ret=socketpair(PF_UNIX,SOCK_STREAM,0,sigpipe);//而socketpair就没这个问题
     assert(ret!=-1);
     SetNonBlocking(sigpipe[1]);
-    Addfd(epollfd,sigpipe[0],true);
+    Addfd(epollfd,sigpipe[0],false);
     
     AddSig(SIGPIPE,SIG_IGN);
     AddSig(SIGALRM,SigHandler);
     AddSig(SIGTERM,SigHandler);
     AddSig(SIGINT,SigHandler);
+
     alarm(TIMESLOT);//设置闹钟
     bool stop_server=false;
     while(!stop_server)
@@ -228,6 +239,8 @@ int main(int argc,char *argv[])
 
     close(epollfd);
     close(listenfd);//main函数创建的监听描述符，就必须由main函数来关闭
+    close(sigpipe[0]);
+    close(sigpipe[1]);
     delete []users;
     delete pool;
     return 0;

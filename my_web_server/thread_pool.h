@@ -72,9 +72,8 @@ bool ThreadPool<T>::Append(T* request)
         return false;
     }
     m_work_queue.push_back(request);//将请求放到队列最后
-
-    m_queue_locker.Unlock();//解锁
     m_queue_stat.Post();//将信号量+1
+    m_queue_locker.Unlock();//解锁
     return true;
 }
 
