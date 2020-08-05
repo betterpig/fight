@@ -7,7 +7,7 @@
 
 #define BUFFER_SIZE 64
 
-class TimeWheel;
+class tw_timer;
 
 struct client_data
 {
