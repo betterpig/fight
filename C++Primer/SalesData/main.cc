@@ -6,27 +6,30 @@ using namespace std;
 
 int main()
 {
-    SalesData data1,data2;
-    double price=0;
-    cin>>data1.bookno>>data1.units_sold>>price;
-    data1.revenue=data1.units_sold*price;
-    cin>>data2.bookno>>data2.units_sold>>price;
-    data2.revenue=data2.units_sold*price;
-
-    if(data1.bookno==data2.bookno)
+    SalesData s1;
+    SalesData s2("123");
+    SalesData s3("123",2,10);
+    SalesData s4(cin);
+    print(cout,s1)<<endl;
+    print(cout,s2)<<endl;
+    print(cout,s3)<<endl;
+    print(cout,s4)<<endl;
+    SalesData total;
+    if(read(cin,total))
     {
-        unsigned total_count=data1.units_sold+data2.units_sold;
-        double total_revenue=data1.revenue+data2.revenue;
-        cout<<data1.bookno<<" "<<total_count<<" "<<total_revenue<<" ";
-        if(total_count!=0)
-            cout<<total_revenue/total_count<<endl;
-        else
-            cout<<"no sales"<<endl;
-        return 0;
+        SalesData trans;
+        while(read(cin,trans))
+        {
+            if(total.isbn()==trans.isbn())
+                total.combine(trans);
+            else
+            {
+                print(cout,total)<<endl;
+                total=trans;
+            }
+        }
+        print(cout,total)<<endl;
     }
     else
-    {
-        cerr<<"data must refer to the same ISBN"<<endl;
-        return -1;
-    }
+        cerr<<"no data?!"<<endl;
 }
